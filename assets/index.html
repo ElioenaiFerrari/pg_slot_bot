@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PG BOT</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+  </head>
+  <body>
+    <div id="games"></div>
+    <div id="best-times"></div>
+    <div id="notification"></div>
+  </body>
+
+  <style>
+    @import url('https://fonts.cdnfonts.com/css/poppins');
+
+    *,
+    html {
+      font-family: Poppins, sans-serif, Arial, Helvetica;
+      padding: 0;
+      margin: 0;
+      outline: none;
+    }
+
+    body {
+      background-color: #191919;
+    }
+
+    #games {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-template-rows: repeat(1, 1fr);
+      gap: 16px;
+      padding: 16px;
+    }
+
+    /* Adicionar uma media query para telas menores */
+    @media (max-width: 768px) {
+      #games {
+        grid-template-columns: repeat(
+          2,
+          1fr
+        ); /* Alterar para 3 colunas em telas menores */
+      }
+    }
+
+    .game {
+      background-color: #282a3a;
+      padding: 0 0 16px 0;
+      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-radius: 4px;
+      transition: all 1s ease-in-out;
+    }
+
+    .game img {
+      width: 100%;
+      height: 160px;
+      border-top-left-radius: 4px;
+      border-top-right-radius: 4px;
+    }
+
+    .game h2 {
+      font-size: 16px;
+      color: white;
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+
+    .game .link {
+      margin-top: 4px;
+      text-decoration: none;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .game .link:hover {
+      color: #f8de22;
+    }
+
+    .game p {
+      font-weight: bold;
+      border-radius: 16px;
+    }
+
+    .game p.good {
+      color: #f8de22;
+    }
+
+    .game p.bad {
+      color: #fc2947;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.2);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .game p.super {
+      color: #a6ff96;
+      animation: pulse 1s infinite;
+    }
+
+    #best-times {
+      display: grid;
+      flex: 1;
+      flex-direction: row;
+      padding: 4px;
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+    }
+
+    #best-times .best-time {
+      color: white;
+      margin-left: 4px;
+      position: relative;
+    }
+
+    #best-times .is-now {
+      font-weight: bold;
+      color: #fc2947;
+      font-size: 16px;
+    }
+
+    #notification {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      padding: 16px;
+      background-color: transparent;
+      border-radius: 8px;
+      color: white;
+      width: auto;
+      transition: all 1s ease-in-out;
+      opacity: 0;
+    }
+
+    #notification .emergency {
+      font-size: 36px;
+      color: #fc2947;
+    }
+
+    #notification .warning {
+      font-size: 20px;
+      color: #f8de22;
+    }
+  </style>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:4001/api/ws');
+    const notification = document.getElementById('notification');
+    const bestTimeSound = new Audio('best-time.wav');
+
+    const insertBestTimes = (bestTimes = [], actualHour = '') => {
+      const container = document.querySelector('#best-times');
+      container.innerHTML = '';
+
+      bestTimes.forEach((bestTime) => {
+        console.log(bestTime);
+        const template = `
+        <p class="best-time " id="${bestTime}">
+          ${bestTime}
+        </p>
+        `;
+
+        const el = document.createElement('p');
+        el.classList.add('best-time');
+        if (bestTime === actualHour) {
+          el.classList.add('is-now');
+        }
+        el.innerText = bestTime;
+
+        container.appendChild(el);
+      });
+    };
+
+    const insertGames = (games = []) => {
+      const container = document.querySelector('#games');
+      container.innerHTML = '';
+      const getStatus = (percentage) => {
+        if (percentage > 90) return 'super';
+        if (percentage > 70) return 'good';
+        return 'bad';
+      };
+
+      games.forEach(({ game, percentage, image_url }) => {
+        const template = `
+        <div class="game" id="${game}">
+          <img src="${image_url}" alt="${game}"/>
+          <h2>${game}</h2>
+          <p class=${getStatus(percentage)}>${percentage}%</p>
+          <a class="link" target="_blank" href="${`https://bet7k.com/casino/pgsoft/${game
+            .toLowerCase()
+            .replaceAll(' ', '-')}`}">BET7K</a>
+        </div>
+        `;
+
+        const el = document.createElement('div');
+        el.innerHTML = template;
+
+        container.appendChild(el);
+      });
+    };
+
+    ws.onopen = () => console.log('connected');
+    ws.onmessage = (event) => {
+      notification.style.opacity = 1;
+      const now = new Date();
+
+      const actualHour = `${now.getHours()}:${now
+        .getMinutes()
+        .toString()
+        .padStart(2, '0')}`;
+
+      const { games, best_times: bestTimes } = JSON.parse(event.data);
+
+      insertGames(games);
+      // insertBestTimes(bestTimes, actualHour);
+
+      if (bestTimes.includes(actualHour)) {
+        // O código entra neste bloco se a hora e minuto atual estiverem na lista.
+        bestTimeSound.play();
+        notification.innerHTML = `<div class="emergency">BEST TIME now ${actualHour}</div>`;
+      } else {
+        notification.innerHTML = `<div class="warning">Updated in ${actualHour}</div>`;
+      }
+      const timeoutID = setTimeout(() => {
+        notification.style.opacity = 0;
+        bestTimeSound.pause();
+        clearTimeout(timeoutID);
+      }, 2_000);
+    };
+  </script>
+</html>
