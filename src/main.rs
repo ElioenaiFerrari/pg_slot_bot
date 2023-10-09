@@ -21,7 +21,7 @@ pub async fn client_connection(ws: WebSocket) {
 #[derive(Debug, serde::Serialize)]
 struct Response {
     pub games: Vec<Game>,
-    pub best_times: Vec<String>,
+    pub best_times: Vec<&'static str>,
 }
 
 async fn fetch_games() -> Response {
@@ -74,7 +74,13 @@ async fn fetch_games() -> Response {
 
     Response {
         games: games,
-        best_times: vec![],
+        best_times: vec![
+            "14:04", "14:05", "14:07", "14:08", "14:09", "14:10", "14:11", "14:13", "14:14",
+            "14:15", "14:16", "14:17", "14:19", "14:20", "14:21", "14:22", "14:23", "14:24",
+            "14:25", "14:26", "14:28", "14:29", "14:30", "14:31", "14:32", "14:33", "14:35",
+            "14:37", "14:39", "14:43", "14:44", "14:45", "14:46", "14:47", "14:48", "14:49",
+            "14:51", "14:52", "14:54", "14:55", "14:58", "14:59",
+        ],
     }
 }
 

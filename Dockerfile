@@ -14,6 +14,7 @@ RUN apk update && apk add --no-cache \
 # Copy the Cargo.toml and src/ files into the container
 COPY Cargo.toml .
 COPY src/ ./src/
+COPY assets/ ./assets/
 
 # Build your Rust application
 RUN cargo build --release
